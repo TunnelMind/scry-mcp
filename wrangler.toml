@@ -1,0 +1,17 @@
+name = "scry-mcp"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [
+  { pattern = "mcp.tunnelmind.ai/*", zone_name = "tunnelmind.ai" }
+]
+
+# Service binding: runtime call into scry-api without leaving CF.
+# Avoids the same-zone Worker → Worker fetch loop that returns 522.
+[[services]]
+binding = "API"
+service = "scry-api"
+
+[vars]
+ENVIRONMENT       = "production"

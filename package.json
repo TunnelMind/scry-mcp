@@ -1,0 +1,11 @@
+{
+  "name": "scry-mcp",
+  "version": "0.1.0",
+  "description": "Scry MCP server (P21/Phase 1b) — agent-facing tool wrapper around the public API",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test test/*.test.js"
+  }
+}
