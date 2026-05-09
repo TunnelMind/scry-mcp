@@ -383,6 +383,76 @@ export const TOOLS = [
     },
   },
   {
+    name: "scry_campaigns",
+    description:
+      "List active threat campaigns — coordinated attacker activity that\n" +
+      "exceeds the noise floor. A campaign is a tool with broad enough adoption\n" +
+      "to look like coordinated infrastructure: ≥5 distinct actors, ≥3 ASNs,\n" +
+      "≤5 destination ports, ≥1h history. Examples surfaced in our corpus:\n" +
+      "Mirai-class telnet botnets (90+ actors across 70+ ASNs, single port);\n" +
+      "Redis-credential-stuffing kits; HTTP login probers.\n" +
+      "\n" +
+      "Use this tool when:\n" +
+      "- An agent is generating a 'top threats this week' briefing.\n" +
+      "- You're checking whether activity against a port/protocol is part of a\n" +
+      "  larger ongoing operation vs. a one-off.\n" +
+      "- Building a SOC dashboard top panel.\n" +
+      "\n" +
+      "Inputs:\n" +
+      "- include_inactive (default false): include campaigns with <3 active members\n" +
+      "  or no activity in 30+ days.\n" +
+      "- limit (default 50, max 200).\n" +
+      "\n" +
+      "Returns each campaign with: id, protocol, member_actor_count,\n" +
+      "confidence_bucket, payload_sha256_prefix, first/last seen.\n" +
+      "Use scry_campaign for full detail (includes ASN diversity, country\n" +
+      "breakdown, ports targeted).\n" +
+      "\n" +
+      "Constraint: this endpoint never lists individual member actors.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        include_inactive: { type: "boolean" },
+        limit: { type: "integer", minimum: 1, maximum: 200 },
+      },
+      additionalProperties: false,
+    },
+    async call(args, env) {
+      const params = new URLSearchParams();
+      if (args?.include_inactive) params.set("include_inactive", "true");
+      if (args?.limit != null) params.set("limit", String(args.limit));
+      const qs = params.toString();
+      return apiGet(env, `/v1/campaigns${qs ? "?" + qs : ""}`);
+    },
+  },
+  {
+    name: "scry_campaign",
+    description:
+      "Single campaign detail by id. Returns the campaign's full profile:\n" +
+      "protocol, payload prefix, member count, ASN diversity, ports targeted,\n" +
+      "country breakdown, age, confidence.\n" +
+      "\n" +
+      "Useful for: deep-dive on a campaign id surfaced by scry_campaigns,\n" +
+      "writing a threat report, building agent-to-human escalation context.\n" +
+      "\n" +
+      "Inputs:\n" +
+      "- id (required): 16-char campaign id (format: c[a-f0-9]{15}).\n" +
+      "\n" +
+      "Returns: { id, active, protocol, example_path, payload_sha256_prefix,\n" +
+      "member_actor_count, confidence_bucket, distinct_asns, ports_targeted,\n" +
+      "countries (object: cc → count), first_seen_ms, last_seen_ms, tool_id }.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string", pattern: "^c[0-9a-f]{15}$" } },
+      required: ["id"],
+      additionalProperties: false,
+    },
+    async call(args, env) {
+      const id = String(args?.id ?? "");
+      return apiGet(env, `/v1/campaign/${encodeURIComponent(id)}`);
+    },
+  },
+  {
     name: "scry_recent",
     description:
       "Recent observations feed — aggregated by source IP within a time window.\n" +
