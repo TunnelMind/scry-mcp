@@ -319,6 +319,70 @@ export const TOOLS = [
     },
   },
   {
+    name: "scry_tools",
+    description:
+      "List detected attack tools — (protocol, payload, path) tuples sent by 3+\n" +
+      "distinct source IPs. A tool with 50+ actors is almost certainly a\n" +
+      "shared botnet client or scanner. With actor_count=3-5 it's a smaller\n" +
+      "coordinated kit or shared exploit.\n" +
+      "\n" +
+      "Use this tool when:\n" +
+      "- Generating threat-landscape reports — 'what attack patterns are active right now?'\n" +
+      "- Hunting for shared infrastructure — multiple actors using the same tool may be the same operator.\n" +
+      "- Pivoting on an unknown payload — see if it's part of a known cluster.\n" +
+      "\n" +
+      "Inputs:\n" +
+      "- protocol (optional filter): ssh, http, https, telnet, etc.\n" +
+      "- since_ms (default 0): only show tools seen since this time.\n" +
+      "- limit (default 50, max 200).\n" +
+      "\n" +
+      "Returns: { results: [{ id, protocol, actor_count, example_path, payload_sha256_prefix, first_seen_ms, last_seen_ms }] }.\n" +
+      "Use scry_tool to retrieve full detail by id.\n" +
+      "\n" +
+      "Constraint: this endpoint never lists the actors using a tool — that's defender-tier.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        protocol: { type: "string" },
+        since_ms: { type: "integer" },
+        limit: { type: "integer", minimum: 1, maximum: 200 },
+      },
+      additionalProperties: false,
+    },
+    async call(args, env) {
+      const params = new URLSearchParams();
+      if (args?.protocol) params.set("protocol", String(args.protocol));
+      if (args?.since_ms != null) params.set("since", String(args.since_ms));
+      if (args?.limit != null) params.set("limit", String(args.limit));
+      const qs = params.toString();
+      return apiGet(env, `/v1/tools${qs ? "?" + qs : ""}`);
+    },
+  },
+  {
+    name: "scry_tool",
+    description:
+      "Single tool detail by id. Same fields as scry_tools list entries.\n" +
+      "\n" +
+      "Use this tool when:\n" +
+      "- An agent is following up on a tool id from scry_tools.\n" +
+      "- Verifying a tool still exists in the corpus before referencing it.\n" +
+      "\n" +
+      "Inputs:\n" +
+      "- id (required): 16-char hex tool id from scry_tools.\n" +
+      "\n" +
+      "Returns: { id, status: 'found' | 'not_found', protocol, actor_count, example_path, payload_sha256_prefix, first_seen_ms, last_seen_ms }.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string", pattern: "^[0-9a-f]{16}$" } },
+      required: ["id"],
+      additionalProperties: false,
+    },
+    async call(args, env) {
+      const id = String(args?.id ?? "");
+      return apiGet(env, `/v1/tool/${encodeURIComponent(id)}`);
+    },
+  },
+  {
     name: "scry_recent",
     description:
       "Recent observations feed — aggregated by source IP within a time window.\n" +
