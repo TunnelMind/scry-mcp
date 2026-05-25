@@ -7,7 +7,20 @@
 import { findTool, listToolsForResponse, TOOLS } from "./tools.js";
 
 const PROTOCOL_VERSION = "2025-03-26";
-const SERVER_INFO = { name: "scry", version: "0.1.0" };
+const SERVER_INFO = { name: "scry", version: "0.5.0" };
+
+const MCP_CARD = {
+  schema_version: "mcp-server-card/1.0-draft",
+  name: "Scry",
+  registry_name: "ai.tunnelmind/scry",
+  description: "Free IPv4 lookups against a distributed attacker-observation corpus: per-IP risk, ASN and country rollups, campaign membership, top-actors lists, and tool/operator attribution.",
+  server_url: "https://mcp.tunnelmind.ai",
+  transport: "streamable-http",
+  tools_count: TOOLS.length,
+  auth: { type: "none" },
+  homepage: "https://tunnelmind.ai",
+  contact: "api@tunnelmind.ai",
+};
 
 export default {
   async fetch(request, env) {
@@ -19,11 +32,17 @@ export default {
       return jsonResponse({
         service: "scry-mcp",
         version: SERVER_INFO.version,
+        registry_name: MCP_CARD.registry_name,
         protocol: PROTOCOL_VERSION,
         transport: "streamable-http",
         endpoint: "POST /mcp",
+        discovery: "GET /.well-known/mcp.json",
         tools: TOOLS.map((t) => t.name),
       });
+    }
+
+    if (method === "GET" && pathname === "/.well-known/mcp.json") {
+      return jsonResponse(MCP_CARD);
     }
 
     if (method === "POST" && pathname === "/mcp") {
